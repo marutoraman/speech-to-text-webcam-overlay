@@ -18,6 +18,9 @@
     <link rel="stylesheet" href="style.css?ver=202005300200" type="text/css" media="screen" charset="utf-8" />
     <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
     <script src="kuromoji/build/kuromoji.js"></script>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"
+        integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+        crossorigin="anonymous"></script>
 </head>
 
 <body>
@@ -217,6 +220,8 @@
                 </span>
                 翻訳：
                 <div id="google_translate_element" class="select_translation"></div>
+                <div class="change_recognition"><input type="button" id="button_change_recognition" value="音声認識の停止（ミュート）"
+                onclick="changeRecognition()"></div>
             </div>
         </div>
         <div id="log" class="log_wrapper">
@@ -233,6 +238,25 @@
                 <input type="button" value="ログをダウンロード" onclick="downloadLogFile(this)">
             </div>
         </div>
+        <div class="log_wrapper">
+            <div class="control_header">認識結果のログのリアルタイム保存(議事メモ機能)</div>
+            <div class="log_control_wrapper help_text control_wrapper">
+                ・GoogleスプレッドシートのURLを指定して認識結果のログを保存します。<br/>
+                ・複数の参加者で同じURLを指定すれば、会議の議事メモとして活用することが出来ます。<br/>
+                ・スプレッドシートは、共有ボタンから『リンクを知っている全員がアクセスできる』状態にしてください。<br/>
+                ・音声認識の停止(ミュート)ボタンをクリックすると、テキストの画面表示がなくなり、ログにも出力されなくなります。<br/>
+                <br/>
+                <div class="log_exp_wrapper">
+                    保存先(スプレッドシートのURL)：<input id="google_spreadsheet_url" class="log_exp_input">
+                </div><br/>
+                <div class="log_exp_wrapper">
+                    ニックネーム(発話者識別用の名称)：<input id="google_spreadsheet_nickname" class="log_exp_input"><br/>
+                </div> 
+            </div>
+        </div>
+        ⇒ログリアルタイム保存機能の仕組みや詳細情報は、<a href="https://gyoumu-kouritsuka-pro.site/">【こちら】</a>を参照してください。<br/><br/> 
+
+
         <div class="help_wrapper">
             <div class="help_text">
                 よくある質問・ソースコード: <a href="https://github.com/1heisuzuki/speech-to-text-webcam-overlay" target="_blank">GitHub</a><br />
@@ -299,6 +323,7 @@
     // 音声認識
     // 参考: https://jellyware.jp/kurage/iot/webspeechapi.html
     var flag_speech = 0;
+    var flag_mute=0;
     var recognition;
     var lang = 'ja-JP';
 
@@ -394,6 +419,9 @@
         if(wSclollHeight < (wLineH * 2)){wSclollHeight=(wLineH * 2);}
         // テキストエリアの高さを設定する
         argObj.style.height = wSclollHeight + "px";
+
+        // 認識結果テキストをGoogleスプレッドシートに保存（追記）する
+        appendResutTextLog();
     }
 
     // 認識を手動で止める（文を区切る）
@@ -863,7 +891,45 @@
             return String.fromCharCode(chr);
         });
     }
+    // 認識結果テキストをログファイル末尾に追記
+    function appendResutTextLog(){
+        let gsUrl=document.getElementById('google_spreadsheet_url').value           //スプレッドシートのURL
+        let resultLog=document.getElementById('result_text').innerText              //認識結果テキスト
+        let nickName=document.getElementById('google_spreadsheet_nickname').value   //ニックネーム（発話者識別用）
 
+        // CORSエラーを避けるために、JSONPによる非同期通信を行う
+        $.ajax({
+            type: 'GET',
+            url:  "https://script.google.com/macros/s/AKfycbyckIbhPOUAgs5doWH-BNwoPoZbv_AXqvvk0HfWsxKPqCvXoK0/exec",//GASの公開URL
+            dataType: 'jsonp',
+            data: {
+                url: gsUrl,
+                name:nickName,
+                log: resultLog
+            },
+            success: out => {
+                console.log(out.message);
+            }
+        });
+    }
+
+    // 音声認識をON/OFFする
+    function changeRecognition(){
+        // ミュートじゃなければミュートにする
+        if(flag_mute == 0){
+            recognition.stop();       //録音の停止
+            flag_mute=1;               
+            document.getElementById('status').innerHTML = "停止中";//ステータスラベルの変更
+            document.getElementById('status').className = "error";
+            document.getElementById("button_change_recognition").value="音声認識の開始"//ボタン名の変更
+
+        // ミュートであればミュート解除
+        } else if(flag_mute==1) {
+            vr_function();
+            flag_mute=0;
+            document.getElementById("button_change_recognition").value="音声認識の停止(ミュート)"
+        }
+    }
 </script>
 
 </html>

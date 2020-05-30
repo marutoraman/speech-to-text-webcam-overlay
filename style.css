@@ -425,3 +425,24 @@ select {
 	/* text-align: center; */
 	vertical-align: middle;
 }
+
+.log_exp_wrapper{
+	margin: 5px 20px;
+}
+
+#google_spreadsheet_url{
+	width:100%;
+}
+
+#google_spreadsheet_nickname{
+	width:30%;
+}
+
+.change_recognition{
+	margin: auto 20px;
+	display: inline-block;
+}
+
+#button_change_recognition{
+	width:200px;
+}
